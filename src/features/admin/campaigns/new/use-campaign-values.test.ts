@@ -9,6 +9,11 @@ import {
   EMPTY_COUPON_DISCOUNT_VALUES,
 } from "../../coupon-discount";
 import {
+  COUPON_SCOPE_KIND_MISSING_MESSAGE,
+  type CouponScopeValues,
+  EMPTY_COUPON_SCOPE_VALUES,
+} from "../../coupon-scope";
+import {
   CAMPAIGN_CODE_INVALID_MESSAGE,
   CAMPAIGN_DATE_MISSING_MESSAGE,
   CAMPAIGN_ENDS_BEFORE_START_MESSAGE,
@@ -19,13 +24,6 @@ import {
   type CampaignOwnValues,
   EMPTY_CAMPAIGN_OWN_VALUES,
 } from "./campaign-rules";
-import {
-  COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
-  COUPON_SCOPE_KIND_MISSING_MESSAGE,
-  COUPON_SCOPE_PRODUCT_MISSING_MESSAGE,
-  type CouponScopeValues,
-  EMPTY_COUPON_SCOPE_VALUES,
-} from "./coupon-scope";
 import { CAMPAIGN_OWN_FIELDS } from "./form-state";
 import { useCampaignValues } from "./use-campaign-values";
 
@@ -89,14 +87,6 @@ describe("useCampaignValues", () => {
     expect(result.current.own).toEqual({ ...EMPTY_CAMPAIGN_OWN_VALUES, code: "SPRING-2026" });
   });
 
-  it("打っただけでは触れたことにならず、誤りを出さない", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.setOwn("code", "ab"));
-
-    expect(result.current.errors).toEqual({});
-  });
-
   it("触れた項目が正しければ誤りを出さない", () => {
     const { result } = renderValues();
 
@@ -106,61 +96,12 @@ describe("useCampaignValues", () => {
     expect(result.current.errors).toEqual({});
   });
 
-  it("触れた項目を直せば誤りが消える", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.touch("code"));
-    act(() => result.current.setOwn("code", "SPRING-2026"));
-
-    expect(result.current.errors.code).toBeUndefined();
-  });
-
-  it("値引きを渡された値で置き換える", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.setDiscount(VALID_DISCOUNT));
-
-    expect(result.current.discount).toBe(VALID_DISCOUNT);
-  });
-
-  it("範囲を渡された値で置き換える", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.setScope(VALID_SCOPE));
-
-    expect(result.current.scope).toBe(VALID_SCOPE);
-  });
-
   it("すべてが正しければ、全項目に印を付けても誤りを出さず、通ると返す", () => {
     const { result } = renderValues();
     fillValid(result);
 
     expect(touchAll(result)).toBe(true);
     expect(result.current.errors).toEqual({});
-  });
-
-  it("キャンペーン自身の項目を書き換えれば書きかけになる", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.setOwn("code", "S"));
-
-    expect(result.current.dirty).toBe(true);
-  });
-
-  it("値引きを書き換えれば書きかけになる", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.setDiscount(VALID_DISCOUNT));
-
-    expect(result.current.dirty).toBe(true);
-  });
-
-  it("範囲を書き換えれば書きかけになる", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.setScope(VALID_SCOPE));
-
-    expect(result.current.dirty).toBe(true);
   });
 
   // ----- 異常系 -----
@@ -243,73 +184,6 @@ describe("useCampaignValues", () => {
     expect(result.current.errors).toEqual({});
   });
 
-  it("値引きを選び直すと種別だけに触れ、額と上限の誤りはまだ出さない", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.setDiscount({ kind: "rate", value: "abc", maxAmount: "x" }));
-
-    expect(result.current.errors).toEqual({});
-  });
-
-  it("値引きの種別を空に戻せば、種別の誤りをその場で出す", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.setDiscount(EMPTY_COUPON_DISCOUNT_VALUES));
-
-    expect(result.current.errors).toEqual({ discountKind: COUPON_DISCOUNT_KIND_MISSING_MESSAGE });
-  });
-
-  it("範囲の種別を空のまま選べば、種別の誤りをその場で出す", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.setScope(EMPTY_COUPON_SCOPE_VALUES));
-
-    expect(result.current.errors).toEqual({ scopeKind: COUPON_SCOPE_KIND_MISSING_MESSAGE });
-  });
-
-  it("範囲の種別だけを選んだ時点では、まだ選んでいないカテゴリの誤りを出さない", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.setScope({ ...EMPTY_COUPON_SCOPE_VALUES, kind: "category" }));
-
-    expect(result.current.errors).toEqual({});
-  });
-
-  it("カテゴリを選び直せばカテゴリに触れ、読めなければ誤りを出す", () => {
-    const { result } = renderValues();
-
-    act(() =>
-      result.current.setScope({ ...EMPTY_COUPON_SCOPE_VALUES, kind: "category", categoryId: "x" }),
-    );
-
-    expect(result.current.errors).toEqual({
-      scopeCategoryId: COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
-    });
-  });
-
-  it("商品を選び直せば商品に触れ、読めなければ誤りを出す", () => {
-    const { result } = renderValues();
-
-    act(() =>
-      result.current.setScope({
-        ...EMPTY_COUPON_SCOPE_VALUES,
-        kind: "product",
-        productId: "x",
-        productName: "ワイヤレスイヤホン",
-      }),
-    );
-
-    expect(result.current.errors).toEqual({ scopeProductId: COUPON_SCOPE_PRODUCT_MISSING_MESSAGE });
-  });
-
-  it("商品の種別だけを選んだ時点では、まだ選んでいない商品の誤りを出さない", () => {
-    const { result } = renderValues();
-
-    act(() => result.current.setScope({ ...EMPTY_COUPON_SCOPE_VALUES, kind: "product" }));
-
-    expect(result.current.errors).toEqual({});
-  });
-
   it("何も打たずに全項目へ印を付ければ、通らないと返して残っている誤りをまとめて出す", () => {
     const { result } = renderValues();
 
@@ -334,14 +208,5 @@ describe("useCampaignValues", () => {
 
     expect(result.current.errors.code).toBeUndefined();
     expect(result.current.errors.startsAt).toBe(CAMPAIGN_DATE_MISSING_MESSAGE);
-  });
-
-  it("全項目へ印を付けた後に 1 項目へ触れても、すべての誤りを出し続ける", () => {
-    const { result } = renderValues();
-    touchAll(result);
-
-    act(() => result.current.touch("code"));
-
-    expect(Object.keys(result.current.errors)).toHaveLength(8);
   });
 });

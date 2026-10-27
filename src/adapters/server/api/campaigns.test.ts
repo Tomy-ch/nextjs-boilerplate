@@ -4,7 +4,6 @@ import { findAppError } from "@/errors/app-error";
 import { ErrorKind } from "@/errors/error-kind";
 import { toCampaignId } from "@/model/campaign/campaign";
 import type { CampaignDraft } from "@/model/campaign/campaign-draft";
-import { toProductCategoryId, toProductId } from "@/model/product/product";
 import { serveJson, serveStatus, serveWrite } from "../../../../vitest.setup.msw";
 import { getCampaignsQueryPerPageMax } from "../../gen/api/endpoints.zod";
 
@@ -310,53 +309,6 @@ describe("createCampaign", () => {
 
     expect(body.minPurchaseAmount).toBeNull();
     expect(body.usableFrom).toBeNull();
-  });
-
-  it("定額の値引きには上限の欄を載せない", async () => {
-    const requests = serveWrite("post", CAMPAIGNS_URL, createdCampaign);
-
-    await createCampaign({ ...draft, discount: { kind: "flat", value: "5.00" } }, "key");
-
-    const body = await requests[0]?.json();
-
-    expect(body.discount).toEqual({ kind: "flat", value: "5.00" });
-  });
-
-  it("定率の上限が無ければ null で送る", async () => {
-    const requests = serveWrite("post", CAMPAIGNS_URL, createdCampaign);
-
-    await createCampaign(
-      { ...draft, discount: { kind: "rate", value: "0.10", maxAmount: null } },
-      "key",
-    );
-
-    const body = await requests[0]?.json();
-
-    expect(body.discount).toEqual({ kind: "rate", value: "0.10", maxAmount: null });
-  });
-
-  it.each([
-    {
-      label: "カテゴリ",
-      scope: {
-        kind: "category",
-        categoryId: toProductCategoryId("5dd52d84-78eb-4a52-ba0b-2e11c95c2af2"),
-      },
-      wire: { kind: "category", targetId: "5dd52d84-78eb-4a52-ba0b-2e11c95c2af2" },
-    },
-    {
-      label: "商品",
-      scope: { kind: "product", productId: toProductId("0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11") },
-      wire: { kind: "product", targetId: "0f4b2f2e-6a3f-4c4a-9e6e-2b1d8f2a1b11" },
-    },
-  ] as const)("$label に絞る範囲は、その識別子を対象として送る", async ({ scope, wire }) => {
-    const requests = serveWrite("post", CAMPAIGNS_URL, createdCampaign);
-
-    await createCampaign({ ...draft, scope }, "key");
-
-    const body = await requests[0]?.json();
-
-    expect(body.scope).toEqual(wire);
   });
 
   it("冪等キーをヘッダへ載せる", async () => {

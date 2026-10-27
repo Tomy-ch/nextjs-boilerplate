@@ -149,7 +149,8 @@ const TEST_FIXTURE_MODULES = [
   "src/features/admin/products/products.fixture.ts", // sample:line
   "src/features/admin/products/list/list.fixture.ts", // sample:line
   "src/features/admin/products/discontinue/discontinue.fixture.ts", // sample:line
-  "src/features/admin/users/users.fixture.ts", // sample:line
+  "src/features/admin/users/list/list.fixture.ts", // sample:line
+  "src/features/admin/users/coupon-new/coupon-new.fixture.ts", // sample:line
   "src/features/admin/campaigns/list/list.fixture.ts", // sample:line
   "src/features/admin/campaigns/new/campaign-new.fixture.ts", // sample:line
   "src/features/admin/inquiries/inquiries.fixture.ts", // sample:line

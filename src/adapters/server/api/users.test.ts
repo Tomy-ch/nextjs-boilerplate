@@ -39,6 +39,7 @@ vi.mock("../taint/taint", () => ({ taintObjectReference }));
 import {
   findMyProfile,
   findRegistration,
+  getManagedUser,
   getManagedUserPage,
   getMyProfile,
   getMyPurchaseSummary,
@@ -560,14 +561,6 @@ describe("getManagedUserPage", () => {
     ).resolves.toBe("2026-08-01T00:00:00Z");
   });
 
-  // ----- 異常系 -----
-  it("契約が拒むページ番号は送る前に止める", async () => {
-    const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
-
-    await expect(getManagedUserPage({ page: 0, perPage: PER_PAGE })).rejects.toThrow();
-    expect(requests).toHaveLength(0);
-  });
-
   it("契約が受け付ける件数の上限そのものは通す", async () => {
     const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
 
@@ -576,6 +569,14 @@ describe("getManagedUserPage", () => {
     expect(new URL(requests[0]?.url ?? "").searchParams.get("perPage")).toBe(
       String(getUsersQueryPerPageMax),
     );
+  });
+
+  // ----- 異常系 -----
+  it("契約が拒むページ番号は送る前に止める", async () => {
+    const requests = serveJson(USERS_URL, { users: [], total: 0, limit: 20, offset: 0 });
+
+    await expect(getManagedUserPage({ page: 0, perPage: PER_PAGE })).rejects.toThrow();
+    expect(requests).toHaveLength(0);
   });
 
   it("契約の上限を 1 件超える件数は送る前に止める", async () => {
@@ -592,6 +593,48 @@ describe("getManagedUserPage", () => {
 
     await expect(kindOf(() => getManagedUserPage({ page: 1, perPage: PER_PAGE }))).resolves.toBe(
       ErrorKind.PERMISSION_DENIED,
+    );
+  });
+});
+
+describe("getManagedUser", () => {
+  // ----- 正常系 -----
+  it("受け取った識別子の利用者を、一覧と同じ項目へ写す", async () => {
+    const reads = serveJson(USER_URL, wireUser);
+
+    await expect(getManagedUser(toUserId(USER_ID))).resolves.toEqual({
+      id: USER_ID,
+      firstName: "太郎",
+      lastName: "山田",
+      email: "taro@example.com",
+      phone: "09012345678",
+      deletedAt: null,
+    });
+    expect(reads[0]?.url).toBe(`${USERS_URL}/${USER_ID}`);
+  });
+
+  it("退会済みの利用者は退会日時を伴って届く", async () => {
+    serveJson(USER_URL, { ...wireUser, deletedAt: "2026-09-01T00:00:00Z" });
+
+    const user = await getManagedUser(toUserId(USER_ID));
+
+    expect(user.deletedAt).toBe("2026-09-01T00:00:00Z");
+  });
+
+  it("写し終えた利用者を client へ渡せないものとして登録する", async () => {
+    serveJson(USER_URL, wireUser);
+
+    const user = await getManagedUser(toUserId(USER_ID));
+
+    expect(taintObjectReference).toHaveBeenCalledWith(expect.any(String), user);
+  });
+
+  // ----- 異常系 -----
+  it("見つからなければ、その分類のまま投げる", async () => {
+    serveStatus("get", USER_URL, 404);
+
+    await expect(kindOf(() => getManagedUser(toUserId(USER_ID)))).resolves.toBe(
+      ErrorKind.NOT_FOUND,
     );
   });
 });

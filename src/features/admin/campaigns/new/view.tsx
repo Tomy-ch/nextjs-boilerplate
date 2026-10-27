@@ -6,21 +6,19 @@ import { useActionState, useCallback, useId, useMemo, useState } from "react";
 import { Button } from "@/components/design-system/action/button/button";
 import { useSubmissionKey } from "@/components/use-submission-key";
 import { idleActionState } from "@/model/action-state";
-
+import { failuresOf, fieldMessagesOf } from "../../confirmation-feedback";
 import type { CouponDiscountField, CouponDiscountValues } from "../../coupon-discount";
+import type { CouponScopeValues } from "../../coupon-scope";
 import { ADMIN_CAMPAIGN_LIST_PATH } from "../../paths";
+import { CouponDiscountFields } from "../../ui/coupon-discount-fields/coupon-discount-fields";
+import { CouponScopeFields } from "../../ui/coupon-scope-fields/coupon-scope-fields";
 import type { AdminSelectOption } from "../../ui/select-field/select-field";
 import { AdminTextField } from "../../ui/text-field/text-field";
 import { useUnsavedChanges } from "../../ui/unsaved-changes-guard/unsaved-changes-guard";
 import { useActionResultFreshness } from "../../use-action-result-freshness";
-import {
-  closesConfirmation,
-  failuresOf,
-  fieldMessagesOf,
-  resendResultOf,
-} from "./campaign-feedback";
+import { useProductCandidates } from "../../use-product-candidates";
+import { closesConfirmation, resendResultOf } from "./campaign-feedback";
 import { confirmationOf } from "./campaign-summary";
-import type { CouponScopeValues } from "./coupon-scope";
 import { CAMPAIGN_FORM_NAMES } from "./form-names";
 import {
   CAMPAIGN_FIELD_LABELS,
@@ -29,12 +27,9 @@ import {
   type CreateCampaignState,
 } from "./form-state";
 import { CampaignConfirmDialog } from "./ui/confirm-dialog/confirm-dialog";
-import { CouponDiscountFields } from "./ui/coupon-discount-fields/coupon-discount-fields";
-import { CouponScopeFields } from "./ui/coupon-scope-fields/coupon-scope-fields";
 import { CampaignLimitFields } from "./ui/limit-fields/limit-fields";
 import { CampaignPeriodFields } from "./ui/period-fields/period-fields";
 import { useCampaignValues } from "./use-campaign-values";
-import { useProductCandidates } from "./use-product-candidates";
 
 const LOCKED_MESSAGE =
   "前回の定義の結果が分かるまで、内容は変えられません。同じ内容でもう一度定義してください。";
@@ -201,7 +196,7 @@ export function AdminCampaignCreateView({
       </div>
       <CampaignConfirmDialog
         confirmation={confirmation}
-        failures={shown === null ? [] : failuresOf(shown)}
+        failures={shown === null ? [] : failuresOf(shown, closesConfirmation)}
         formAction={submit}
         idempotencyKey={idempotencyKey}
         onDismiss={closeConfirmation}

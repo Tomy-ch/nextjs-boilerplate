@@ -1,7 +1,7 @@
 import type { ActionState } from "@/model/action-state";
 
 import type { CouponDiscountField } from "../../coupon-discount";
-import type { CouponScopeField } from "./coupon-scope";
+import type { CouponScopeField } from "../../coupon-scope";
 
 /** キャンペーン自身の入力欄のうち、入力した人が直せる項目。 */
 export type CampaignOwnField =

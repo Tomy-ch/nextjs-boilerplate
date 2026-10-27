@@ -7,11 +7,13 @@ import {
 import type { CampaignDraft } from "@/model/campaign/campaign-draft";
 
 import {
+  COUPON_MIN_PURCHASE_INVALID_MESSAGE,
   type CouponDiscountValues,
+  readMinPurchaseAmount,
   toCouponDiscount,
-  toMinorUnitAmount,
 } from "../../coupon-discount";
-import { type CouponScopeValues, toCouponScope } from "./coupon-scope";
+import { type CouponScopeValues, toCouponScope } from "../../coupon-scope";
+import { instantOf, wallClockToInstant } from "../../wall-clock";
 import type { CampaignOwnField, CreateCampaignField } from "./form-state";
 
 /** 枚数として読める綴り。符号も小数も持たない。 */
@@ -77,10 +79,6 @@ export const CAMPAIGN_LIMIT_INVALID_MESSAGE = `${CAMPAIGN_LIMIT_MIN} 以上の�
 export const CAMPAIGN_PER_USER_OVER_TOTAL_MESSAGE =
   "1 人あたりの上限は総枚数の上限以下にしてください。";
 
-/** 最低購入額が読めなかったときの文言。 */
-export const CAMPAIGN_MIN_PURCHASE_INVALID_MESSAGE =
-  "最低購入額は 50 や 49.99 のように、0 より大きいドルの額を小数第 2 位までで入力してください。";
-
 /**
  * 打たれたコードを、保存される綴りへ揃える。
  *
@@ -93,28 +91,6 @@ export const CAMPAIGN_MIN_PURCHASE_INVALID_MESSAGE =
  */
 export function normalizeCampaignCode(code: string): string {
   return code.trim().toUpperCase();
-}
-
-/**
- * `datetime-local` の壁時計の値を、入力した人の時間帯で瞬間の文字列へ確定させる。
- *
- * @remarks
- * **ブラウザで呼びます。** 時差を持たない日時の綴りは、ECMAScript が実行環境の時間帯で読むと
- * 定めています。ブラウザで読めばそれが入力した人の時間帯になり、日時ごとにその時点の時差で
- * 解かれるため、夏時間をまたぐ期間でもずれません。サーバで読むと配備先の時間帯になるため、
- * 確定させた瞬間だけを送ります（[`docs/design/rendering.md`](../../../../../docs/design/rendering.md)）。
- *
- * @param wallClock - `datetime-local` の値
- * @returns ISO 8601 の瞬間。空か読めなければ空文字
- */
-export function wallClockToInstant(wallClock: string): string {
-  if (wallClock === "") {
-    return "";
-  }
-
-  const instant = new Date(wallClock);
-
-  return Number.isNaN(instant.getTime()) ? "" : instant.toISOString();
 }
 
 /**
@@ -137,22 +113,6 @@ export function submissionOf(
   }
 
   return { own: { ...own, ...instants }, discount, scope };
-}
-
-/**
- * 瞬間の文字列を読む。
- *
- * @param text - ISO 8601 の瞬間
- * @returns 読めた瞬間。空か読めなければ null
- */
-function instantOf(text: string): Date | null {
-  if (text === "") {
-    return null;
-  }
-
-  const instant = new Date(text);
-
-  return Number.isNaN(instant.getTime()) ? null : instant;
 }
 
 /**
@@ -321,8 +281,7 @@ function limitsOf(own: CampaignOwnValues): CampaignLimitsReading {
   const errors: Partial<Record<CampaignOwnField, string>> = {};
   const totalLimit = countOf(own.totalLimit);
   const perUserLimit = countOf(own.perUserLimit);
-  const minPurchaseAmount =
-    own.minPurchaseAmount === "" ? null : toMinorUnitAmount(own.minPurchaseAmount);
+  const minPurchaseAmount = readMinPurchaseAmount(own.minPurchaseAmount);
 
   if (totalLimit === null) errors.totalLimit = CAMPAIGN_LIMIT_INVALID_MESSAGE;
 
@@ -332,13 +291,19 @@ function limitsOf(own: CampaignOwnValues): CampaignLimitsReading {
     errors.perUserLimit = CAMPAIGN_PER_USER_OVER_TOTAL_MESSAGE;
   }
 
-  if (own.minPurchaseAmount !== "" && minPurchaseAmount === null) {
-    errors.minPurchaseAmount = CAMPAIGN_MIN_PURCHASE_INVALID_MESSAGE;
-  }
+  if (!minPurchaseAmount.ok) errors.minPurchaseAmount = COUPON_MIN_PURCHASE_INVALID_MESSAGE;
 
-  if (totalLimit === null || perUserLimit === null || Object.keys(errors).length > 0) {
+  if (
+    totalLimit === null ||
+    perUserLimit === null ||
+    !minPurchaseAmount.ok ||
+    Object.keys(errors).length > 0
+  ) {
     return { ok: false, errors };
   }
 
-  return { ok: true, limits: { totalLimit, perUserLimit, minPurchaseAmount } };
+  return {
+    ok: true,
+    limits: { totalLimit, perUserLimit, minPurchaseAmount: minPurchaseAmount.amount },
+  };
 }

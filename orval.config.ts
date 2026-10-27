@@ -316,6 +316,7 @@ export default defineConfig({
           GetProductCategories: { mock: { data: PRODUCT_CATEGORIES } },
           GetPurchaseStatuses: { mock: { data: PURCHASE_STATUSES } },
           GetUsersMeCoupons: { mock: { data: HELD_COUPONS } },
+          GetUsersDetail: { mock: { properties: { "/^deletedAt$/": () => null } } },
           // 売上額は decimal 文字列だが、同じ項目名がダッシュボードの集計では整数で宣言されて
           // いる。項目名で指定すると整数のほうまで文字列に変わるため、この operation に閉じる。
           GetProductsRankingAmount: {

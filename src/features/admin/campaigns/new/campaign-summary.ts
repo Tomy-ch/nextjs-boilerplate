@@ -1,13 +1,17 @@
-import { COUPON_SCOPE_NAME } from "@/model/coupon/coupon";
-
-import { COUPON_DISCOUNT_FORM_NAMES, type CouponDiscountValues } from "../../coupon-discount";
+import type { CouponDiscountValues } from "../../coupon-discount";
+import type { CouponScopeValues } from "../../coupon-scope";
+import {
+  couponFieldsOf,
+  discountDetail,
+  readableWallClock,
+  scopeDetail,
+} from "../../coupon-summary";
 import {
   type CampaignOwnValues,
   type CampaignSubmission,
   normalizeCampaignCode,
   submissionOf,
 } from "./campaign-rules";
-import { COUPON_SCOPE_FORM_NAMES, type CouponScopeValues } from "./coupon-scope";
 import { CAMPAIGN_FORM_NAMES } from "./form-names";
 
 /** 確認に並べる 1 行。 */
@@ -22,28 +26,14 @@ export type CampaignConfirmation = {
 };
 
 /**
- * `datetime-local` の壁時計の値を、読むための綴りへ直す。
- *
- * @param wallClock - `datetime-local` の値
- * @returns `2026/10/01 10:00` の形。空なら空
- */
-function readableWallClock(wallClock: string): string {
-  return wallClock.replace(/^(\d{4})-(\d{2})-(\d{2})T/, "$1/$2/$3 ");
-}
-
-/**
  * 送る項目と値を並べる。
- *
- * @remarks
- * **種別に応じて要らない項目は載せません。** 定額の上限や、全体の範囲の対象は、欄が隠れていても
- * 画面は値を持ち続けます。載せると、見えていない値が送られます。
  *
  * @param submission - 日時を瞬間へ確定させた一式
  * @returns 送る項目と値
  */
 function fieldsOf(submission: CampaignSubmission): CampaignConfirmation["fields"] {
   const { discount, own, scope } = submission;
-  const fields: (readonly [string, string])[] = [
+  return [
     [CAMPAIGN_FORM_NAMES.code, own.code],
     [CAMPAIGN_FORM_NAMES.startsAt, own.startsAt],
     [CAMPAIGN_FORM_NAMES.endsAt, own.endsAt],
@@ -52,58 +42,8 @@ function fieldsOf(submission: CampaignSubmission): CampaignConfirmation["fields"
     [CAMPAIGN_FORM_NAMES.totalLimit, own.totalLimit],
     [CAMPAIGN_FORM_NAMES.perUserLimit, own.perUserLimit],
     [CAMPAIGN_FORM_NAMES.minPurchaseAmount, own.minPurchaseAmount],
-    [COUPON_DISCOUNT_FORM_NAMES.kind, discount.kind],
-    [COUPON_DISCOUNT_FORM_NAMES.value, discount.value],
-    [COUPON_SCOPE_FORM_NAMES.kind, scope.kind],
+    ...couponFieldsOf(discount, scope),
   ];
-
-  if (discount.kind === "rate") {
-    fields.push([COUPON_DISCOUNT_FORM_NAMES.maxAmount, discount.maxAmount]);
-  }
-
-  if (scope.kind === "category") {
-    fields.push([COUPON_SCOPE_FORM_NAMES.categoryId, scope.categoryId]);
-  }
-
-  if (scope.kind === "product") {
-    fields.push([COUPON_SCOPE_FORM_NAMES.productId, scope.productId]);
-  }
-
-  return fields;
-}
-
-/**
- * 値引きを、確認で読む文に直す。
- *
- * @param discount - 打たれた値引き
- * @returns 復唱の文
- */
-function discountDetail(discount: CouponDiscountValues): string {
-  if (discount.kind === "flat") {
-    return `${discount.value} ドル引き`;
-  }
-
-  return discount.maxAmount === ""
-    ? `${discount.value}% 引き`
-    : `${discount.value}% 引き（1 回 ${discount.maxAmount} ドルまで）`;
-}
-
-/**
- * 範囲を、確認で読む文に直す。
- *
- * @param scope - 選ばれた範囲
- * @param categoryName - 選ばれたカテゴリの名前。カテゴリでなければ使わない
- * @returns 復唱の文
- */
-function scopeDetail(scope: CouponScopeValues, categoryName: string): string {
-  switch (scope.kind) {
-    case "category":
-      return `${COUPON_SCOPE_NAME.category}：${categoryName}`;
-    case "product":
-      return `${COUPON_SCOPE_NAME.product}：${scope.productName}`;
-    default:
-      return COUPON_SCOPE_NAME.all;
-  }
 }
 
 /**

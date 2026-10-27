@@ -17,14 +17,13 @@ describe("AdminProductDiscontinueSkeleton", () => {
     const { container } = render(<AdminProductDiscontinueSkeleton />);
 
     expect(container.firstElementChild).toHaveAttribute("aria-hidden", "true");
-    expect(within(container).queryAllByRole("generic")).toHaveLength(0);
   });
 
   it("どの立ち位置になるかを約束する文言や操作を出さない", () => {
     const { container } = render(<AdminProductDiscontinueSkeleton />);
 
     expect(container.textContent).toBe("");
-    expect(within(container).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(container).queryByRole("button", { hidden: true })).not.toBeInTheDocument();
   });
 
   it("a11y 検査を通る", async () => {

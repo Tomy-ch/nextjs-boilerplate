@@ -4,7 +4,6 @@ import { cache } from "react";
 import type { z } from "zod";
 import { type Campaign, type CampaignId, toCampaignId } from "@/model/campaign/campaign";
 import type { CampaignDraft } from "@/model/campaign/campaign-draft";
-import type { CouponDiscount, CouponScopeTarget } from "@/model/coupon/coupon";
 import type { OffsetPage } from "@/model/pagination";
 
 import {
@@ -15,15 +14,11 @@ import {
   PostCampaignsResponse,
   PostCampaignsSuspendResponse,
 } from "../../gen/api/endpoints.zod";
-import type {
-  CampaignClaimsPostRequest,
-  CampaignsPostRequest,
-  CouponDiscountInput,
-  CouponScopeInput,
-} from "../../gen/api/model";
+import type { CampaignClaimsPostRequest, CampaignsPostRequest } from "../../gen/api/model";
 import { IDEMPOTENCY_KEY_HEADER } from "../http/request";
 import { getUserScopedClient } from "../http/user-scoped-client";
-import { toCouponDiscount } from "./coupon-discount";
+import { toCouponDiscount, toCouponDiscountInput } from "./coupon-discount";
+import { toCouponScopeInput } from "./coupon-scope";
 
 /**
  * 契約が受け付けるページ番号の上限。
@@ -155,39 +150,6 @@ export async function claimCampaignCoupon(code: string, idempotencyKey: string):
 }
 
 /**
- * 値引きを契約の形へ写す。
- *
- * @remarks
- * 定額には上限の欄そのものを載せません。契約は定額に上限を付けた要求を、意味を持たない組み
- * 合わせとして拒みます。
- *
- * @param discount - 表示用の値引き
- * @returns 契約が受け付ける値引き
- */
-function toWireDiscount(discount: CouponDiscount): CouponDiscountInput {
-  return discount.kind === "flat"
-    ? { kind: "flat", value: discount.value }
-    : { kind: "rate", value: discount.value, maxAmount: discount.maxAmount };
-}
-
-/**
- * 範囲を契約の形へ写す。
- *
- * @param scope - 表示用の範囲
- * @returns 契約が受け付ける範囲。全体は対象を null で送る
- */
-function toWireScope(scope: CouponScopeTarget): CouponScopeInput {
-  switch (scope.kind) {
-    case "all":
-      return { kind: "all", targetId: null };
-    case "category":
-      return { kind: "category", targetId: scope.categoryId };
-    case "product":
-      return { kind: "product", targetId: scope.productId };
-  }
-}
-
-/**
  * キャンペーンを定義する。
  *
  * @remarks
@@ -207,8 +169,8 @@ export async function createCampaign(draft: CampaignDraft, idempotencyKey: strin
     headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
     body: {
       code: draft.code,
-      discount: toWireDiscount(draft.discount),
-      scope: toWireScope(draft.scope),
+      discount: toCouponDiscountInput(draft.discount),
+      scope: toCouponScopeInput(draft.scope),
       minPurchaseAmount: draft.minPurchaseAmount,
       usableFrom: draft.usableFrom === null ? null : draft.usableFrom.toISOString(),
       couponExpiresAt: draft.couponExpiresAt.toISOString(),

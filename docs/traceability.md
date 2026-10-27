@@ -28,7 +28,7 @@ Hand-counted numbers are not placed here because **later readers cannot verify t
 
 <!-- generated: rules-tally -->
 
-**21 sections, 255 rules.**
+**21 sections, 256 rules.**
 Of these, 18 sections name a mechanical means in their header, and 32 rules state their own verdict.
 
 | Verdict | Count |

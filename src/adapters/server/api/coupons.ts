@@ -5,10 +5,19 @@ import type { z } from "zod";
 
 import { getLogger, reportQuietly } from "@/logging/logging.server";
 import { type CartCoupon, type HeldCoupon, toCouponId } from "@/model/coupon/coupon";
+import type { CouponIssueDraft } from "@/model/coupon/coupon-issue-draft";
+import type { UserId } from "@/model/user/user";
 
-import { GetCartsMeCouponsResponse, GetUsersMeCouponsResponse } from "../../gen/api/endpoints.zod";
+import {
+  GetCartsMeCouponsResponse,
+  GetUsersMeCouponsResponse,
+  PostCouponsResponse,
+} from "../../gen/api/endpoints.zod";
+import type { CouponsPostRequest } from "../../gen/api/model";
+import { IDEMPOTENCY_KEY_HEADER } from "../http/request";
 import { getUserScopedClient } from "../http/user-scoped-client";
-import { toCouponDiscount } from "./coupon-discount";
+import { toCouponDiscount, toCouponDiscountInput } from "./coupon-discount";
+import { toCouponScopeInput } from "./coupon-scope";
 
 type WireHeldCoupon = z.infer<typeof GetUsersMeCouponsResponse>["coupons"][number];
 
@@ -102,4 +111,39 @@ export async function readMyCartCoupons(): Promise<readonly CartCoupon[] | null>
 
     return null;
   }
+}
+
+/**
+ * 利用者 1 人にクーポンを 1 枚発行する。
+ *
+ * @remarks
+ * **発行は取り消せず、冪等キーが再送を初回の結果へ畳みます。** 別のキーで送れば別の発行に
+ * なります。キーを作るのは画面で、結果が定まるまで同じキーで送り直します。
+ *
+ * 応答は写しません。発行した直後の画面が見せるのは、送った内容の復唱です。
+ *
+ * @param recipient - 発行先の利用者。退会していない人に限られる
+ * @param draft - 発行する内容
+ * @param idempotencyKey - 再送を初回の結果へ畳むための鍵
+ */
+export async function issueCoupon(
+  recipient: UserId,
+  draft: CouponIssueDraft,
+  idempotencyKey: string,
+): Promise<void> {
+  await getUserScopedClient().request({
+    path: "/v1/coupons",
+    method: "POST",
+    headers: { [IDEMPOTENCY_KEY_HEADER]: idempotencyKey },
+    body: {
+      userId: recipient,
+      discount: toCouponDiscountInput(draft.discount),
+      scope: toCouponScopeInput(draft.scope),
+      minPurchaseAmount: draft.minPurchaseAmount,
+      usableFrom: draft.usableFrom === null ? null : draft.usableFrom.toISOString(),
+      expiresAt: draft.expiresAt.toISOString(),
+    } satisfies CouponsPostRequest,
+    idempotent: true,
+    schema: PostCouponsResponse,
+  });
 }

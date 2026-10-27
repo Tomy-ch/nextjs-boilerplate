@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from "@storybook/nextjs-vite";
 import { useCallback, useState } from "react";
 
+import { COUPON_MIN_PURCHASE_INVALID_MESSAGE } from "../../../../coupon-discount";
 import { FILLED_OWN_VALUES } from "../../campaign-new.fixture";
 import {
   CAMPAIGN_LIMIT_INVALID_MESSAGE,
-  CAMPAIGN_MIN_PURCHASE_INVALID_MESSAGE,
   CAMPAIGN_PER_USER_OVER_TOTAL_MESSAGE,
 } from "../../campaign-rules";
 import {
@@ -69,7 +69,7 @@ export const Invalid: Story = {
     messages: {
       totalLimit: CAMPAIGN_LIMIT_INVALID_MESSAGE,
       perUserLimit: CAMPAIGN_PER_USER_OVER_TOTAL_MESSAGE,
-      minPurchaseAmount: CAMPAIGN_MIN_PURCHASE_INVALID_MESSAGE,
+      minPurchaseAmount: COUPON_MIN_PURCHASE_INVALID_MESSAGE,
     },
   },
 };

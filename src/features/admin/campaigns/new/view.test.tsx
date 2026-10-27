@@ -10,6 +10,10 @@ import { ErrorKind } from "@/errors/error-kind";
 import { failedActionState, idleActionState } from "@/model/action-state";
 
 import { COUPON_DISCOUNT_KIND_MISSING_MESSAGE } from "../../coupon-discount";
+import {
+  COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
+  COUPON_SCOPE_KIND_MISSING_MESSAGE,
+} from "../../coupon-scope";
 import { ADMIN_CAMPAIGN_LIST_PATH } from "../../paths";
 import { UnsavedChangesGuard } from "../../ui/unsaved-changes-guard/unsaved-changes-guard";
 import {
@@ -27,10 +31,6 @@ import {
   CAMPAIGN_USABLE_AFTER_EXPIRY_MESSAGE,
   type CampaignOwnValues,
 } from "./campaign-rules";
-import {
-  COUPON_SCOPE_CATEGORY_MISSING_MESSAGE,
-  COUPON_SCOPE_KIND_MISSING_MESSAGE,
-} from "./coupon-scope";
 import { CAMPAIGN_CONFIRMED_VALUE } from "./form-names";
 import {
   CAMPAIGN_CODE_CONFLICT_MESSAGE,
@@ -50,11 +50,11 @@ vi.mock("@/components/app-starter/navigation-guard/navigation-guard", () => ({
   },
 }));
 
-vi.mock("./use-product-candidates", async (importOriginal) => {
+vi.mock("../../use-product-candidates", async (importOriginal) => {
   const fixture = await import("./campaign-new.fixture");
 
   return {
-    ...(await importOriginal<typeof import("./use-product-candidates")>()),
+    ...(await importOriginal<typeof import("../../use-product-candidates")>()),
     useProductCandidates: () => fixture.FOUND_PRODUCTS,
   };
 });

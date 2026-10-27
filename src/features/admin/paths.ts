@@ -1,6 +1,7 @@
 import { toProductDetailHref } from "@/features/products/facade/detail-url/detail-url";
 import type { InquiryId } from "@/model/inquiry/inquiry";
 import type { ProductId } from "@/model/product/product";
+import type { UserId } from "@/model/user/user";
 
 /**
  * 商品を一覧で見る画面のパス。
@@ -90,4 +91,14 @@ export function productDetailPath(id: ProductId): string {
  */
 export function adminInquiryDetailPath(id: InquiryId): string {
   return `${ADMIN_INQUIRY_LIST_PATH}/${encodeURIComponent(id)}`;
+}
+
+/**
+ * 利用者 1 人にクーポンを発行する画面のパス。
+ *
+ * @param id - 発行先の利用者
+ * @returns 発行の画面のパス
+ */
+export function adminUserCouponNewPath(id: UserId): string {
+  return `${ADMIN_USER_LIST_PATH}/${encodeURIComponent(id)}/coupons/new`;
 }

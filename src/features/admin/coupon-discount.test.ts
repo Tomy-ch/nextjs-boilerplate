@@ -9,6 +9,7 @@ import {
   COUPON_DISCOUNT_RATE_OUT_OF_RANGE_MESSAGE,
   type CouponDiscountValues,
   readCouponDiscountValues,
+  readMinPurchaseAmount,
   toCouponDiscount,
   toCouponDiscountRate,
   toMinorUnitAmount,
@@ -116,6 +117,29 @@ describe("toMinorUnitAmount", () => {
 
   it("最小単位が安全に表せる整数を超える額は null を返す", () => {
     expect(toMinorUnitAmount(UNSAFE_AMOUNT)).toBeNull();
+  });
+});
+
+describe("readMinPurchaseAmount", () => {
+  // ----- 正常系 -----
+  it.each([
+    { amount: "49.99", minor: 4999 },
+    { amount: "50", minor: 5000 },
+  ])("$amount を最小単位の $minor として読む", ({ amount, minor }) => {
+    expect(readMinPurchaseAmount(amount)).toStrictEqual({ ok: true, amount: minor });
+  });
+
+  it("空なら条件無しの null として読む", () => {
+    expect(readMinPurchaseAmount("")).toStrictEqual({ ok: true, amount: null });
+  });
+
+  // ----- 異常系 -----
+  it.each([
+    { label: "0", amount: "0" },
+    { label: "最小単位より細かい桁を持つ額", amount: "49.999" },
+    { label: "数でない綴り", amount: "abc" },
+  ])("$label（$amount）は読めないものとして失敗を返す", ({ amount }) => {
+    expect(readMinPurchaseAmount(amount)).toStrictEqual({ ok: false });
   });
 });
 

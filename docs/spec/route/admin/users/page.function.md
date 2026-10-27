@@ -4,7 +4,7 @@
 >
 > The promises on authorization and the layout shell are held by [`../layout.function.md`](../layout.function.md).
 
-Surveys the registered users and closes their accounts.
+Surveys the registered users, leads to issuing a coupon to one of them, and closes their accounts.
 
 ## Pagination counts by position
 
@@ -30,6 +30,12 @@ the same way** — the contract caps page numbers, and sending a value beyond it
 the list.
 
 **Default values are not put in the URL.** It would give the same list two addresses.
+
+## Issuing starts from a row
+
+**A coupon is issued to the user of the row it was started from**; the issuing screen never asks who
+([`[id]/coupons/new/page.function.md`](<[id]/coupons/new/page.function.md>)). **A closed account offers no way to issue** — the
+contract refuses a closed recipient.
 
 ## Account closure is irreversible
 

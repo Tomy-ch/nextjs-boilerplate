@@ -6,8 +6,8 @@ import {
   PageHeaderDescription,
   PageHeaderTitle,
 } from "@/components/shell/page-header/page-header";
-import { AdminUserListPageContent } from "@/features/admin/users/page-content";
-import { AdminUserListSkeleton } from "@/features/admin/users/ui/skeleton/skeleton";
+import { AdminUserListPageContent } from "@/features/admin/users/list/page-content";
+import { AdminUserListSkeleton } from "@/features/admin/users/list/ui/skeleton/skeleton";
 import type { RawSearchParams } from "@/model/search-params";
 import { withdrawUserAction } from "./actions";
 
