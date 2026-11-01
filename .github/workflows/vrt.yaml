@@ -90,7 +90,7 @@ jobs:
             *.data.mcr.microsoft.com
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -161,7 +161,7 @@ jobs:
             *.data.mcr.microsoft.com
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -228,7 +228,7 @@ jobs:
       # though each triplet was written on a different machine.
       - name: Upload this shard's report
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vrt-blob-${{ matrix.shard }}
           path: blob-report/
@@ -239,7 +239,7 @@ jobs:
       # `vrt-diff` artifact has the same shape however many shards wrote it.
       - name: Upload this shard's diff images
         if: always() && steps.vrt.outputs.status == 'failure'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vrt-results-${{ matrix.shard }}
           path: tmp/vrt/results
@@ -260,7 +260,7 @@ jobs:
 
       - name: Hand the log tail to the collecting job
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vrt-log-${{ matrix.shard }}
           path: /tmp/vrt-logs/
@@ -276,7 +276,7 @@ jobs:
 
       - name: Hand the hash to the collecting job
         if: matrix.shard == 1 && steps.vrt.outputs.status == 'success'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vrt-verified
           path: tmp/vrt/verified-inputs.sha256
@@ -338,7 +338,7 @@ jobs:
             *.data.mcr.microsoft.com
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
@@ -355,7 +355,7 @@ jobs:
 
       - name: Collect what the shards left behind
         if: needs.vrt-scope.outputs.relevant == 'true'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: vrt-blob-*
           path: tmp/vrt/blob
@@ -364,7 +364,7 @@ jobs:
       - name: Collect the diff images
         if: needs.vrt-scope.outputs.relevant == 'true'
         continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: vrt-results-*
           path: tmp/vrt/results
@@ -373,7 +373,7 @@ jobs:
       - name: Collect the log tails
         if: needs.vrt-scope.outputs.relevant == 'true'
         continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           pattern: vrt-log-*
           path: tmp/vrt/logs
@@ -451,7 +451,7 @@ jobs:
       # The key is unique per run so the save always lands; `restore-keys` picks the newest.
       - name: Collect the hash of the rendering inputs
         if: steps.verdict.outputs.status == 'success'
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: vrt-verified
           path: tmp/vrt
@@ -528,7 +528,7 @@ jobs:
       # cannot be judged.
       - name: Upload the visual diff
         if: steps.verdict.outputs.status == 'failure'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vrt-diff
           # The pre-merge zips carry the same content the merged report already holds.
@@ -542,7 +542,7 @@ jobs:
       # separate from the diff bundle so the retake path downloads only the report.
       - name: Upload the machine-readable report
         if: steps.verdict.outputs.status == 'failure'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vrt-report
           path: tmp/vrt/report.json
@@ -553,7 +553,7 @@ jobs:
       # because the body is a file whose size is not bounded by the output limit.
       - name: Hand the comment body to the commenting job
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: vrt-comment
           path: /tmp/vrt-comment/
@@ -600,14 +600,14 @@ jobs:
             *.data.mcr.microsoft.com
 
       - name: Checkout
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Download the comment body
         id: body
         continue-on-error: true
-        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: vrt-comment
           path: /tmp/vrt-comment
